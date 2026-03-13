@@ -41,7 +41,7 @@ def _impl(ctx):
         platform_common.ToolchainInfo(
             ifs_toolchain_info = IFSToolchainInfo(
                 executable = ctx.executable.executable,
-                tools =  depset(ctx.files.host + ctx.files.target, transitive = [ctx.attr.executable.default_runfiles.files]),
+                tools = depset(ctx.files.host + ctx.files.target, transitive = [ctx.attr.executable.default_runfiles.files]),
                 env = env,
             ),
         ),

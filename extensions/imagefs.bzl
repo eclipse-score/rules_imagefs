@@ -32,17 +32,17 @@ _attrs_sdp = {
     "url": attr.string(
         mandatory = False,
         default = "",
-        doc = "Url to the toolchain archive."
+        doc = "Url to the toolchain archive.",
     ),
     "strip_prefix": attr.string(
         mandatory = False,
         default = "",
-        doc = "Strip prefix from toolchain archive.", 
+        doc = "Strip prefix from toolchain archive.",
     ),
     "sha256": attr.string(
         mandatory = False,
         default = "",
-        doc = "Checksum of the archive."
+        doc = "Checksum of the archive.",
     ),
 }
 
@@ -54,7 +54,7 @@ _attrs_tc = {
     ),
     "sdp_to_import": attr.label(
         mandatory = False,
-        default = None, 
+        default = None,
         doc = "The label of SDP package to import from different extension( e.g. from `gcc`) ",
     ),
     "target_cpu": attr.string(
@@ -125,13 +125,12 @@ def _get_packages(tags):
         })
     return packages
 
-
 def _get_toolchains(tags):
     """Gets toolchain information from given tags.
 
     Args:
         tags: A list of tags containing toolchain information.
-    
+
     Returns:
         dict: A dictionary with toolchain information.
     """
@@ -197,11 +196,11 @@ imagefs = module_extension(
     tag_classes = {
         "toolchain": tag_class(
             attrs = _attrs_tc,
-            doc = "Toolchain configuration parameters that define toolchain."
+            doc = "Toolchain configuration parameters that define toolchain.",
         ),
         "sdp": tag_class(
             attrs = _attrs_sdp,
             doc = "Software Development Package (short sdp) is tarball holding binaries of toolchain.",
         ),
-    }
+    },
 )

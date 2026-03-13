@@ -32,18 +32,17 @@ def _impl(rctx):
         },
     )
 
-
 imagefs_toolchain = repository_rule(
     implementation = _impl,
     attrs = {
-        "tc_pkg_repo": attr.string(doc="The label name of toolchain tarbal."),
-        "tc_cpu": attr.string(doc="Target platform CPU."),
-        "tc_os": attr.string(doc="Target platform OS."),
-        "sdp_version": attr.string(doc="SDP version number"),
-        "license_path": attr.string(doc="Lincese path"),
-        "license_info_variable": attr.string(doc="License info variable name (custom settings)"),
-        "license_info_value": attr.string(doc="License info value (custom settings)"),
-        "tc_type": attr.string(doc="TODO"),
+        "tc_pkg_repo": attr.string(doc = "The label name of toolchain tarbal."),
+        "tc_cpu": attr.string(doc = "Target platform CPU."),
+        "tc_os": attr.string(doc = "Target platform OS."),
+        "sdp_version": attr.string(doc = "SDP version number"),
+        "license_path": attr.string(doc = "Lincese path"),
+        "license_info_variable": attr.string(doc = "License info variable name (custom settings)"),
+        "license_info_value": attr.string(doc = "License info value (custom settings)"),
+        "tc_type": attr.string(doc = "TODO"),
         "_ifs_toolchain_build": attr.label(
             default = "@score_rules_imagefs//templates/qnx:BUILD.template",
             doc = "Path to the Bazel BUILD file template for the toolchain.",
