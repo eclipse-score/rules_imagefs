@@ -1,3 +1,16 @@
+# *******************************************************************************
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+# *******************************************************************************
+
 load(":common/pkg.bzl", "qnx_build_inputs_from_pkg")
 
 def _gen_main_build_file(
@@ -44,9 +57,7 @@ def gen_image_definition(
         srcs,
         global_attrs = None,
         extra_build_file = None,
-        extra_build_files = [],
-        repo_mapping = {},
-        repo_mapping_srcs = None):
+        extra_build_files = []):
     """
     Process inputs for QNX image definition, return contents and builds files.
 
@@ -57,10 +68,6 @@ def gen_image_definition(
         extra_build_file: Additional build file to be included.
         extra_build_files: Additional build files to be included after the
             extra_build_file.
-        repo_mapping: Map of Bazel location expressions to hardcoded variable
-                      names in extra build file.
-        repo_mapping_srcs: Bazel targets referenced in the location expressions
-                           of repo_mapping.
     Returns:
         main_build_file: Main entrypoint QNX build file.
         build_files: QNX build files inluded in the main.
@@ -77,7 +84,7 @@ def gen_image_definition(
     build_files.extend(extra_build_files)
 
     # # Rules_pkg contents
-    pkg_contents, pkg_build_file = qnx_build_inputs_from_pkg(
+    pkg_contents, pkg_build_file = _qnx_build_inputs_from_pkg(
         ctx,
         srcs,
         per_file_attrs = None,

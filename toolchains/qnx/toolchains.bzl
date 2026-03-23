@@ -14,7 +14,7 @@
 """ Toolchain provider implementation for QNX filesystem image rules.
 """
 
-IFSToolchainInfo = provider(
+ImageFSToolchainInfo = provider(
     doc = "Executable for generating QNX filesystems.",
     fields = ["executable", "tools", "env"],
 )
@@ -39,7 +39,7 @@ def _impl(ctx):
 
     return [
         platform_common.ToolchainInfo(
-            ifs_toolchain_info = IFSToolchainInfo(
+            imagefs_toolchain_info = ImageFSToolchainInfo(
                 executable = ctx.executable.executable,
                 tools = depset(ctx.files.host + ctx.files.target, transitive = [ctx.attr.executable.default_runfiles.files]),
                 env = env,
