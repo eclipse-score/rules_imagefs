@@ -45,7 +45,7 @@ Attributes:
 """
 
 COMMON_RULES_ATTRS = {
-    "all_files": attr.label_list(
+    "srcs": attr.label_list(
         mandatory = True,
     ),
     "build_file": attr.label(

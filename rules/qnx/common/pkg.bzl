@@ -92,6 +92,7 @@ def qnx_build_inputs_from_pkg(ctx, pkg_srcs, per_file_attrs = None):
             uid = _get_pkg_attr(pfi.attributes, "uid", _DEFAULT_UID)
             gid = _get_pkg_attr(pfi.attributes, "gid", _DEFAULT_GID)
             for dest, src_file in sorted(pfi.dest_src_map.items()):
+                dest = dest.lstrip("/")
                 content += "[{}uid={} gid={} perms={}] /{}={}\n".format(
                     extra_attrs_str,
                     uid,

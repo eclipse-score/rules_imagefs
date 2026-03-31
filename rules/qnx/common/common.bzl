@@ -14,6 +14,11 @@
 """ TODO: Write docstrings
 """
 
+load(":common/attrs.bzl", _COMMON_RULES_ATTRS = "COMMON_RULES_ATTRS")
+load(":common/qnx_image.bzl", "gen_image_definition")
+
+COMMON_RULES_ATTRS = _COMMON_RULES_ATTRS
+
 def prep_output(ctx):
     """
     Determines and declares the output file for the QNX image build action.
@@ -74,11 +79,12 @@ def prep_inputs(ctx):
     """
     main_build_file, build_files, fs_contents = gen_image_definition(
         ctx,
-        srcs = ctx.attr.all_files,
+        srcs = ctx.attr.srcs,
         extra_build_file = ctx.file.build_file,
         extra_build_files = ctx.files.extra_build_files,
     )
 
+    inputs = []
     inputs.append(main_build_file)
     inputs.extend(build_files)
     inputs.extend(fs_contents)
