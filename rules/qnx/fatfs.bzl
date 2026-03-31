@@ -39,13 +39,14 @@ def _fatfs_impl(ctx):
     ])
 
     return gen_image(
+        ctx,
         inputs = inputs,
         outputs = [out_image],
         arguments = [args],
         image_tc_type = QNX_FS_TOOLCHAIN,
     )
 
-qnx6fs = rule(
+fatfs = rule(
     implementation = _fatfs_impl,
     toolchains = [QNX_FS_TOOLCHAIN],
     attrs = _common_rule_attrs,

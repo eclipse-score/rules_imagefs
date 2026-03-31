@@ -40,7 +40,7 @@ def _qnx_ifs_impl(ctx):
         produce flashable QNX image.
     """
 
-    out_image = prep_output(ctx)
+    out_image = prep_output(ctx, "ifs")
     main_build_file_string_path, inputs = prep_inputs(ctx)
 
     args = ctx.actions.args()

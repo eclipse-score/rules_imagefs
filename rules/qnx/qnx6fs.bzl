@@ -11,15 +11,24 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
+"""
+This rule generates a QNX6 filesystem image using the QNX6 filesystem utility.
+
+The user provides input files and configuration that define the filesystem
+contents and structure. The QNX6 filesystem tool creates a filesystem image
+based on this specification.
+"""
+
 load(":common/common.bzl", "gen_image", "prep_inputs", "prep_output", _common_rule_attrs = "COMMON_RULES_ATTRS")
 
 QNX_FS_TOOLCHAIN = "@score_rules_imagefs//toolchains/qnx:qnx6fs_toolchain_type"
 
 def _qnx6fs_impl(ctx):
-    """ Implementation function of qnx_ifs rule.
+    """ Implementation function of qnx6fs rule.
 
-        This function will merge all .build files into main .build file and
-        produce flashable QNX image.
+        This function invokes the QNX6 filesystem creation utility to generate
+        a QNX6 filesystem image based on the provided inputs and configuration
+        defined in the rule context.
     """
     out_image = prep_output(ctx)
     main_build_file_string_path, inputs = prep_inputs(ctx)
@@ -32,6 +41,7 @@ def _qnx6fs_impl(ctx):
     ])
 
     return gen_image(
+        ctx,
         inputs = inputs,
         outputs = [out_image],
         arguments = [args],

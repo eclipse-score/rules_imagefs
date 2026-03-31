@@ -19,7 +19,7 @@ load(":common/qnx_image.bzl", "gen_image_definition")
 
 COMMON_RULES_ATTRS = _COMMON_RULES_ATTRS
 
-def prep_output(ctx):
+def prep_output(ctx, extension = "img"):
     """
     Determines and declares the output file for the QNX image build action.
 
@@ -35,7 +35,8 @@ def prep_output(ctx):
             to expose the following attributes:
             - ctx.attr.out: Optional explicit output filename.
             - ctx.attr.name: Name of the rule, used as a fallback prefix.
-            - ctx.attr.extension: File extension used when `out` is not provided.
+        extension: The file extension to use when `ctx.attr.out` is not provided.
+            Typically set by the calling rule; defaults to `"img"`.
 
     Returns:
         File: A declared output `File` object representing the generated QNX
@@ -45,9 +46,9 @@ def prep_output(ctx):
         Fail: If the resolved output name contains path separators (i.e., is not
         a simple filename).
     """
-    out_name = ctx.attr.out if ctx.attr.out else "{}.{}".format(ctx.attr.name, ctx.attr.extension)
+    out_name = ctx.attr.out if ctx.attr.out else "{}.{}".format(ctx.attr.name, extension)
     if "/" in out_name:
-        fail("qnx_ifs.out must be a filename without path components, got: {}".format(out_name))
+        fail("Output file must be a filename without path components, got: {}".format(out_name))
 
     return ctx.actions.declare_file(out_name)
 

@@ -19,7 +19,18 @@ filesystems, etc.). The diskimage tool creates a composite disk image from this
 specification.
 """
 
+load(":common/common.bzl", "gen_image", "prep_inputs", "prep_output", _common_rule_attrs = "COMMON_RULES_ATTRS")
+
 QNX_FS_TOOLCHAIN = "@score_rules_imagefs//toolchains/qnx:diskimage_toolchain_type"
+
+diskimage_attrs = {}
+diskimage_attrs.update(_common_rule_attrs)
+diskimage_attrs.update({
+    "gpt_enabled": attr.bool(
+        default = False,
+        doc = "When True, passes -g to diskimage to generate a GPT (GUID Partition Table) disk image.",
+    ),
+})
 
 def _diskimage_impl(ctx):
     """ Implementation function of diskimage rule.
@@ -27,21 +38,8 @@ def _diskimage_impl(ctx):
         This function uses the QNX diskimage utility to create a composite
         disk image from the provided build file specification.
     """
-    inputs = []
-
-    # Choose output filename
-    out_name = ctx.attr.out if ctx.attr.out else "{}.{}".format(ctx.attr.name, ctx.attr.extension)
-    if "/" in out_name:
-        fail("diskimage.out must be a filename without path components, got: {}".format(out_name))
-
-    out_img = ctx.actions.declare_file(out_name)
-
-    diskimage_tool_info = ctx.toolchains[QNX_FS_TOOLCHAIN].ifs_toolchain_info
-
-    main_build_file = ctx.file.build_file
-
-    inputs.append(main_build_file)
-    inputs.extend(ctx.files.srcs)
+    out_image = prep_output(ctx)
+    main_build_file_string_path, inputs = prep_inputs(ctx)
 
     args = ctx.actions.args()
 
@@ -52,51 +50,19 @@ def _diskimage_impl(ctx):
         "-o",
         out_img.path,
         "-c",
-        main_build_file.path,
+        main_build_file_string_path,
     ])
 
-    #Add env variables for bazel labels/targets
-    env_to_append = {}
-    env_to_append = env_to_append | diskimage_tool_info.env
-
-    ctx.actions.run(
-        outputs = [out_img],
+    return gen_image(
+        ctx,
         inputs = inputs,
+        outputs = [out_image],
         arguments = [args],
-        executable = diskimage_tool_info.executable,
-        env = env_to_append,
-        tools = diskimage_tool_info.tools,
+        image_tc_type = QNX_FS_TOOLCHAIN,
     )
-
-    return [
-        DefaultInfo(files = depset([out_img])),
-    ]
 
 diskimage = rule(
     implementation = _diskimage_impl,
     toolchains = [QNX_FS_TOOLCHAIN],
-    attrs = {
-        "build_file": attr.label(
-            allow_single_file = True,
-            doc = "Single label that points to the main build file (disk layout specification)",
-            mandatory = True,
-        ),
-        "extension": attr.string(
-            default = "img",
-            doc = "Extension for the generated disk image.",
-        ),
-        "srcs": attr.label_list(
-            allow_files = True,
-            doc = "List of labels that are used by the `build_file`",
-            allow_empty = True,
-        ),
-        "out": attr.string(
-            default = "",
-            doc = "Optional explicit output filename (no path). If empty, uses name + '.' + extension.",
-        ),
-        "gpt_enabled": attr.bool(
-            default = False,
-            doc = "When True, passes -g to diskimage to generate a GPT (GUID Partition Table) disk image.",
-        ),
-    },
+    attrs = diskimage_attrs,
 )

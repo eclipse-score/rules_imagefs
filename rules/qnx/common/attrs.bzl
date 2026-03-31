@@ -28,12 +28,6 @@ Attributes:
         Label pointing to the main QNX build file (entry point). Must resolve
         to a single file.
 
-    extension (string, default = "ifs"):
-        File extension for the generated IFS image. This exists primarily as a
-        workaround for limitations in IPNext startup code when interpreting IFS
-        images. This attribute is expected to be deprecated or replaced by a
-        toolchain-based configuration in the future to ensure consistency.
-
     extra_build_files (label_list, default = []):
         Additional build files to be included after the main `build_file`.
         These are appended in order and allow modularization of build logic.
@@ -52,10 +46,6 @@ COMMON_RULES_ATTRS = {
         allow_single_file = True,
         doc = "Single label that points to the main build file (entrypoint)",
         mandatory = True,
-    ),
-    "extension": attr.string(
-        default = "ifs",
-        doc = "Extension for the generated IFS image. Manipulating this extensions is a workaround for IPNext startup code limitation, when interpreting ifs images. This attribute will either disappear or will be replaced by toolchain configuration in order to keep output files consistent.",
     ),
     "extra_build_files": attr.label_list(
         allow_files = True,
