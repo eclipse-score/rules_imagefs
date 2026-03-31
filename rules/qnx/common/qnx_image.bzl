@@ -84,7 +84,7 @@ def gen_image_definition(
     build_files.extend(extra_build_files)
 
     # # Rules_pkg contents
-    pkg_contents, pkg_build_file = _qnx_build_inputs_from_pkg(
+    pkg_contents, pkg_build_file = qnx_build_inputs_from_pkg(
         ctx,
         srcs,
         per_file_attrs = None,

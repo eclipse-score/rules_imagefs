@@ -45,7 +45,7 @@ def _qnx_ifs_impl(ctx):
 
     args = ctx.actions.args()
     args.add_all(
-        ctx.files.search_paths,
+        ctx.attr.search_roots,
         before_each = "-r",
     )
     args.add_all([
@@ -54,6 +54,7 @@ def _qnx_ifs_impl(ctx):
     ])
 
     return gen_image(
+        ctx,
         inputs = inputs,
         outputs = [out_image],
         arguments = [args],
