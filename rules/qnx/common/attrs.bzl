@@ -20,9 +20,10 @@ standardize how input files, build definitions, and output artifacts are
 specified and handled within the rule implementations.
 
 Attributes:
-    all_files (label_list, mandatory):
+    srcs (label_list, mandatory):
         Collection of input targets contributing to the filesystem image.
-        This may include `rules_pkg` outputs and regular files.
+        This should contain targets that provide `rules_pkg` providers
+        (e.g. `pkg_files`, `pkg_filegroup`).
 
     build_file (label, mandatory):
         Label pointing to the main QNX build file (entry point). Must resolve

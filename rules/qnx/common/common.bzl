@@ -66,8 +66,8 @@ def prep_inputs(ctx):
     Args:
         ctx: The rule context (`RuleContext`) provided by Bazel. It is expected
             to expose the following attributes:
-            - ctx.attr.srcs: Combined set of source inputs (e.g., rules_pkg outputs and
-              regular files).
+            - ctx.attr.srcs: Combined set of input targets providing `rules_pkg`
+              providers (e.g. `pkg_files`, `pkg_filegroup`).
             - ctx.file.build_file: Main build file (entry point).
             - ctx.files.extra_build_files: Additional build files to be included.
 

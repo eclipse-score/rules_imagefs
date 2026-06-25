@@ -63,17 +63,16 @@ def gen_image_definition(
 
     Args:
         ctx: Rule context.
-        srcs: Input sources for the filesystem; may be a mix of rules_pkg outputs and regular files.
+        srcs: Input sources for the filesystem; must be `rules_pkg`-based
+              targets (e.g. `pkg_files`, `pkg_filegroup`).
         global_attrs: Attributes set globally on main build file.
         extra_build_file: Additional build file to be included.
         extra_build_files: Additional build files to be included after the
             extra_build_file.
     Returns:
         main_build_file: Main entrypoint QNX build file.
-        build_files: QNX build files inluded in the main.
+        build_files: QNX build files included in the main.
         fs_contents: Files to be included in the QNX image.
-        expanded_repo_map: Expanded Bazel locations with paths of files to be
-                           included.
     """
 
     build_files = []
