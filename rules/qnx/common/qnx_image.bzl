@@ -63,7 +63,7 @@ def gen_image_definition(
 
     Args:
         ctx: Rule context.
-        srcs: Input srcs for FS, can be mix of DUI, rules_pkg, and regular.
+        srcs: Input sources for the filesystem; may be a mix of rules_pkg outputs and regular files.
         global_attrs: Attributes set globally on main build file.
         extra_build_file: Additional build file to be included.
         extra_build_files: Additional build files to be included after the

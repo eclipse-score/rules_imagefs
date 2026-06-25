@@ -22,7 +22,7 @@ specified and handled within the rule implementations.
 Attributes:
     all_files (label_list, mandatory):
         Collection of input targets contributing to the filesystem image.
-        This may include DUI files, `rules_pkg` outputs, and regular files.
+        This may include `rules_pkg` outputs and regular files.
 
     build_file (label, mandatory):
         Label pointing to the main QNX build file (entry point). Must resolve
