@@ -8,6 +8,7 @@ This repository provides Starlark rules for building several QNX image types:
 - `qnx6fs` for QNX6 filesystem images
 - `fatfs` for FAT filesystem images
 - `diskimage` for composite disk images
+- `ext4` for Linux ext4 filesystem images without journaling
 
 It also provides a Bazel module extension for registering the corresponding QNX toolchains from an SDP archive.
 
@@ -17,6 +18,8 @@ It also provides a Bazel module extension for registering the corresponding QNX 
 rules_imagefs/
 ├── extensions/
 │   └── imagefs.bzl
+├── rules/linux/
+│   └── ext4.bzl
 ├── rules/qnx/
 │   ├── diskimage.bzl
 │   ├── fatfs.bzl
@@ -45,6 +48,9 @@ Builds a FAT filesystem image using the QNX `mkfatfsimg` flow.
 
 ### `diskimage`
 Builds a composite disk image from a main disk layout build file. The rule supports a `gpt_enabled` boolean attribute that passes `-g` to the underlying QNX `diskimage` tool.
+
+### `ext4`
+Builds an ext4 filesystem image from the provided `srcs` files without a journal.
 
 ## Module usage
 
@@ -120,6 +126,7 @@ load("@score_rules_imagefs//rules/qnx:ifs.bzl", "qnx_ifs")
 load("@score_rules_imagefs//rules/qnx:qnx6fs.bzl", "qnx6fs")
 load("@score_rules_imagefs//rules/qnx:fatfs.bzl", "fatfs")
 load("@score_rules_imagefs//rules/qnx:diskimage.bzl", "diskimage")
+load("@score_rules_imagefs//rules/linux:ext4.bzl", "ext4")
 ```
 
 ## Basic rule examples
@@ -174,6 +181,15 @@ diskimage(
         ":partition_rootfs",
     ],
     gpt_enabled = True,
+)
+```
+
+### ext4 filesystem
+
+```starlark
+ext4(
+    name = "rootfs_ext4",
+    srcs = [":rootfs_files"],
 )
 ```
 
