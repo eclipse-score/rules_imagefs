@@ -114,6 +114,7 @@ mke2fs -q -t ext4 -O ^has_journal -d "$stage" "$output"
 
 ext4 = rule(
     implementation = _ext4_impl,
+    exec_compatible_with = ["@platforms//os:linux"],
     attrs = {
         "srcs": attr.label_list(
             mandatory = True,
