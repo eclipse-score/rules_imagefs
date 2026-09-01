@@ -16,11 +16,11 @@
 load("@bazel_skylib//lib:paths.bzl", "paths")
 load("@rules_pkg//pkg:providers.bzl", "PackageDirsInfo", "PackageFilegroupInfo", "PackageFilesInfo", "PackageSymlinkInfo")
 
-def _shell_quote(value):
-    return "'{}'".format(value.replace("'", "'\"'\"'"))
+EXT4_TOOLCHAIN = "@score_rules_imagefs//toolchains/linux:ext4_toolchain_type"
 
-def _pkg_entries(ctx):
-    commands = []
+def _pkg_entry_args(ctx):
+    """Builds the flat "D dest | F dest src | L dest target" argv consumed by stage_and_measure.sh."""
+    args = []
     inputs = []
 
     for src in ctx.attr.srcs:
@@ -43,78 +43,95 @@ def _pkg_entries(ctx):
         else:
             fail("Target {} does not provide a rules_pkg provider".format(src.label))
 
-        if type(dirs_list) == "list":
-            for pdi, _ in dirs_list:
-                for directory in pdi.dirs:
-                    destination = paths.normalize(directory).lstrip("/")
-                    commands.append("mkdir -p {}/{}".format("$stage", _shell_quote(destination)))
+        for pdi, _ in dirs_list if type(dirs_list) == "list" else []:
+            for directory in pdi.dirs:
+                destination = paths.normalize(directory).lstrip("/")
+                args.extend(["D", destination])
 
-        if type(files_list) == "list":
-            for pfi, _ in files_list:
-                for destination, source in sorted(pfi.dest_src_map.items()):
-                    destination = paths.normalize(destination).lstrip("/")
-                    parent = paths.dirname(destination)
-                    commands.append("mkdir -p {}/{}".format("$stage", _shell_quote(parent)))
-                    commands.append("cp {} {}/{}".format(
-                        _shell_quote(source.path),
-                        "$stage",
-                        _shell_quote(destination),
-                    ))
-                    inputs.append(source)
-
-        if type(symlinks_list) == "list":
-            for psi, _ in symlinks_list:
-                destination = paths.normalize(psi.destination).lstrip("/")
+        for pfi, _ in files_list if type(files_list) == "list" else []:
+            for destination, source in sorted(pfi.dest_src_map.items()):
+                destination = paths.normalize(destination).lstrip("/")
                 parent = paths.dirname(destination)
-                commands.append("mkdir -p {}/{}".format("$stage", _shell_quote(parent)))
-                commands.append("ln -s {} {}/{}".format(
-                    _shell_quote(psi.target),
-                    "$stage",
-                    _shell_quote(destination),
-                ))
+                if parent:
+                    args.extend(["D", parent])
+                args.extend(["F", destination, source.path])
+                inputs.append(source)
 
-    return inputs, commands
+        for psi, _ in symlinks_list if type(symlinks_list) == "list" else []:
+            destination = paths.normalize(psi.destination).lstrip("/")
+            parent = paths.dirname(destination)
+            if parent:
+                args.extend(["D", parent])
+            args.extend(["L", destination, psi.target])
+
+    return inputs, args
+
+def _compute_size(ctx, tool_info, entry_inputs, entry_args):
+    """Computes the target image size.
+
+    Delegates to the static //rules/linux/tools:compute_size script, driven
+    entirely by argv, so no script content is generated per-target. The script
+    stages srcs into its own private scratch directory (not a Bazel tree
+    artifact) since destinations may include intentionally dangling symlinks,
+    which Bazel disallows in declared directory outputs.
+    """
+    size_file = ctx.actions.declare_file("{}.size".format(ctx.attr.name))
+
+    args = ctx.actions.args()
+    args.add(tool_info.coreutils)
+    args.add(ctx.attr.name)
+    args.add(size_file.path)
+    args.add_all(entry_args)
+
+    ctx.actions.run(
+        executable = ctx.executable._compute_size_tool,
+        arguments = [args],
+        inputs = entry_inputs,
+        outputs = [size_file],
+        tools = tool_info.tools,
+        mnemonic = "ComputeExt4Size",
+        progress_message = "Computing ext4 image size for {}".format(ctx.label),
+    )
+    return size_file
+
+def _create_image(ctx, tool_info, entry_inputs, entry_args, size_file, out_image):
+    """Re-stages srcs and truncates/formats the final image via the static //rules/linux/tools:create_image script."""
+    args = ctx.actions.args()
+    args.add(tool_info.coreutils)
+    args.add(tool_info.mke2fs)
+    args.add(ctx.attr.name)
+    args.add(size_file.path)
+    args.add(out_image.path)
+    args.add_all(entry_args)
+
+    ctx.actions.run(
+        executable = ctx.executable._create_image_tool,
+        arguments = [args],
+        inputs = entry_inputs + [size_file],
+        outputs = [out_image],
+        tools = tool_info.tools,
+        mnemonic = "CreateExt4Image",
+        progress_message = "Creating ext4 image {}".format(out_image.short_path),
+    )
 
 def _ext4_impl(ctx):
     if ctx.attr.out and "/" in ctx.attr.out:
         fail("Output file must be a filename without path components, got: {}".format(ctx.attr.out))
 
     out_image = ctx.actions.declare_file(ctx.attr.out if ctx.attr.out else "{}.ext4".format(ctx.attr.name))
-    inputs, entry_commands = _pkg_entries(ctx)
-    script = ctx.actions.declare_file("{}_make_ext4.sh".format(ctx.attr.name))
+    entry_inputs, entry_args = _pkg_entry_args(ctx)
 
-    script_content = """#!/bin/sh
-set -eu
-stage="$PWD/{name}.stage"
-output="$PWD/{output}"
-rm -rf "$stage"
-mkdir -p "$stage"
-trap 'rm -rf "$stage"' EXIT
-{entries}
-content_bytes=$(du -sb "$stage" | cut -f1)
-size_bytes=$((content_bytes + content_bytes / 10 + 16777216))
-size_bytes=$(((size_bytes + 4095) / 4096 * 4096))
-truncate -s "$size_bytes" "$output"
-mke2fs -q -t ext4 -O ^has_journal -d "$stage" "$output"
-""".format(
-        name = ctx.attr.name,
-        output = out_image.path,
-        entries = "\n".join(entry_commands),
-    )
-    ctx.actions.write(script, script_content, is_executable = True)
+    tool_info = ctx.toolchains[EXT4_TOOLCHAIN].ext4_toolchain_info
 
-    ctx.actions.run(
-        executable = script,
-        inputs = inputs,
-        outputs = [out_image],
-        mnemonic = "CreateExt4Image",
-        progress_message = "Creating ext4 image {}".format(out_image.short_path),
-    )
+    size_file = _compute_size(ctx, tool_info, entry_inputs, entry_args)
+    _create_image(ctx, tool_info, entry_inputs, entry_args, size_file, out_image)
+
     return [DefaultInfo(files = depset([out_image]))]
 
 ext4 = rule(
     implementation = _ext4_impl,
     exec_compatible_with = ["@platforms//os:linux"],
+    toolchains = [EXT4_TOOLCHAIN],
     attrs = {
         "srcs": attr.label_list(
             mandatory = True,
@@ -123,6 +140,16 @@ ext4 = rule(
         "out": attr.string(
             default = "",
             doc = "Optional output filename without path components.",
+        ),
+        "_compute_size_tool": attr.label(
+            default = Label("//rules/linux/tools:compute_size"),
+            cfg = "exec",
+            executable = True,
+        ),
+        "_create_image_tool": attr.label(
+            default = Label("//rules/linux/tools:create_image"),
+            cfg = "exec",
+            executable = True,
         ),
     },
 )

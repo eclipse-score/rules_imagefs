@@ -18,17 +18,27 @@ It also provides a Bazel module extension for registering the corresponding QNX 
 rules_imagefs/
 ├── extensions/
 │   └── imagefs.bzl
-├── rules/linux/
-│   └── ext4.bzl
-├── rules/qnx/
-│   ├── diskimage.bzl
-│   ├── fatfs.bzl
-│   ├── ifs.bzl
+├── rules/
 │   ├── imagefs_toolchain.bzl
-│   └── qnx6fs.bzl
-├── templates/qnx/
-├── toolchains/qnx/
-│   └── toolchains.bzl
+│   ├── linux/
+│   │   ├── ext4.bzl
+│   │   └── tools/
+│   └── qnx/
+│       ├── common/
+│       ├── diskimage.bzl
+│       ├── fatfs.bzl
+│       ├── ifs.bzl
+│       └── qnx6fs.bzl
+├── templates/
+│   ├── linux/
+│   └── qnx/
+├── toolchains/
+│   ├── linux/
+│   │   ├── toolchains.bzl
+│   │   └── tools/
+│   └── qnx/
+│       └── toolchains.bzl
+├── tests/                 # nested Bazel module exercising this repo as a consumer
 ├── MODULE.bazel
 └── README.md
 ```
@@ -51,6 +61,8 @@ Builds a composite disk image from a main disk layout build file. The rule suppo
 
 ### `ext4`
 Builds an ext4 filesystem image from the provided `srcs` files without a journal.
+
+The rule invokes `mke2fs` through the `//toolchains/linux:ext4_toolchain_type` toolchain. No toolchain of this type is registered by default, so a `type = "ext4"` toolchain must be configured before the rule can build (see below). The `imagefs` module extension's `ext4` toolchain provisions a hermetic `coreutils` automatically (prebuilt uutils binaries via `bazel_lib`, used for `du`, `cp`, `mkdir`, `ln`, `truncate`), but currently still shells out to whatever `mke2fs` is on the exec host's `PATH` — `sdp_to_import`/`sdp` are not yet wired up to supply `mke2fs` (an accepted interim limitation). To fully control both tools yourself, register a toolchain directly via `ext4_toolchain_config` instead (see below).
 
 ## Module usage
 
@@ -118,6 +130,26 @@ Supported `type` values:
 - `qnx6fs`
 - `fatfs`
 - `diskimage`
+- `ext4`
+
+For `ext4`, no `sdp`/`sdp_to_import` is needed — the extension provisions a hermetic `coreutils` for you and wires `mke2fs` to the exec host's `PATH` (see [`ext4`](#ext4) above):
+
+```starlark
+imagefs.toolchain(
+    name = "ext4_toolchain_linux_x86_64",
+    target_cpu = "x86_64",
+    target_os = "linux",
+    type = "ext4",
+)
+```
+
+Then register the generated toolchain in your `MODULE.bazel`:
+
+```starlark
+use_repo(imagefs, "ext4_toolchain_linux_x86_64")
+
+register_toolchains("@ext4_toolchain_linux_x86_64//:ext4-x86_64-linux")
+```
 
 ## Rule loading
 
@@ -191,6 +223,31 @@ ext4(
     name = "rootfs_ext4",
     srcs = [":rootfs_files"],
 )
+```
+
+A toolchain of this type must be registered before this rule can build — either via the `imagefs` module extension's `type = "ext4"` tag (see [Toolchain configuration](#toolchain-configuration) above, which generates the boilerplate below for you), or directly, e.g. to supply fully hermetic `mke2fs`/`coreutils` executables of your own:
+
+```starlark
+load("@score_rules_imagefs//toolchains/linux:toolchains.bzl", "ext4_toolchain_config")
+
+ext4_toolchain_config(
+    name = "ext4_toolchain",
+    coreutils = "@my_coreutils//:coreutils",
+    mke2fs = "@my_e2fsprogs//:mke2fs",
+)
+
+toolchain(
+    name = "ext4_toolchain_def",
+    exec_compatible_with = ["@platforms//os:linux"],
+    toolchain = ":ext4_toolchain",
+    toolchain_type = "@score_rules_imagefs//toolchains/linux:ext4_toolchain_type",
+)
+```
+
+Then register it in your `MODULE.bazel`:
+
+```starlark
+register_toolchains("//path/to:ext4_toolchain_def")
 ```
 
 ## Environment and licensing

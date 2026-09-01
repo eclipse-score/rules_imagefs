@@ -1,5 +1,5 @@
 # *******************************************************************************
-# Copyright (c) 2025 Contributors to the Eclipse Foundation
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
 #
 # See the NOTICE file(s) distributed with this work for additional
 # information regarding copyright ownership.
@@ -11,7 +11,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
-module(name = "score_rules_imagefs")
+module(name = "score_rules_imagefs_tests")
 
 # *******************************************************************************
 # Common useful functions and rules for Bazel
@@ -31,26 +31,22 @@ bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "rules_cc", version = "0.2.17")
 
 # *******************************************************************************
-# Other deps
-# *******************************************************************************
-bazel_dep(name = "tar.bzl", version = "0.7.0")
-
-# *******************************************************************************
-# Needed by S-CORE CI Automatic checks
-# *******************************************************************************
-bazel_dep(name = "score_tooling", version = "1.1.2")
-bazel_dep(name = "aspect_rules_lint", version = "2.3.0")
-bazel_dep(name = "buildifier_prebuilt", version = "8.5.1")
-bazel_dep(name = "rules_pkg", version = "1.2.0")
-
-# *******************************************************************************
 # Hermetic `truncate` used by the ext4 rule, via bazel_lib's coreutils toolchain
 # (prebuilt uutils/coreutils binaries, no host tool required).
 # *******************************************************************************
 bazel_dep(name = "bazel_lib", version = "3.7.1")
+bazel_dep(name = "rules_pkg", version = "1.2.0")
+bazel_dep(name = "score_rules_imagefs")
+local_path_override(
+    module_name = "score_rules_imagefs",
+    path = "../",
+)
 
-bazel_lib_toolchains = use_extension("@bazel_lib//lib:extensions.bzl", "toolchains")
-bazel_lib_toolchains.coreutils()
-use_repo(bazel_lib_toolchains, "coreutils_toolchains")
-
-register_toolchains("@coreutils_toolchains//:all")
+imagefs = use_extension("@score_rules_imagefs//extensions:imagefs.bzl", "imagefs", dev_dependency = True)
+imagefs.toolchain(
+    name = "score_qnx_x86_64_ext4_toolchain",
+    target_cpu = "x86_64",
+    target_os = "linux",
+    type = "ext4",
+)
+use_repo(imagefs, "score_qnx_x86_64_ext4_toolchain")

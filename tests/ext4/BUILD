@@ -1,5 +1,3 @@
-#!/bin/sh
-
 # *******************************************************************************
 # Copyright (c) 2026 Contributors to the Eclipse Foundation
 #
@@ -13,15 +11,32 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
-set -eu
+load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "pkg_mklink")
+load("@score_rules_imagefs//rules/linux:ext4.bzl", "ext4")
 
-image="$1"
+pkg_files(
+    name = "rootfs_files",
+    srcs = ["hello.txt"],
+    prefix = "etc",
+)
 
-content=$(DEBUGFS_PAGER=cat debugfs -R "cat /etc/hello.txt" "$image" 2>/dev/null)
-test "$content" = "hello from ext4"
+pkg_mklink(
+    name = "hello_link",
+    link_name = "usr/share/hello.txt",
+    target = "/etc/hello.txt",
+)
 
-DEBUGFS_PAGER=cat debugfs -R "stat /etc/hello.txt" "$image" 2>&1 | grep -q "Type: regular"
-DEBUGFS_PAGER=cat debugfs -R "stat /usr/share/hello.txt" "$image" 2>&1 | grep -q "Type: symlink"
-DEBUGFS_PAGER=cat debugfs -R "stat /usr/share/hello.txt" "$image" 2>&1 | grep -q 'Fast link dest: "/etc/hello.txt"'
+ext4(
+    name = "test_image",
+    srcs = [
+        ":hello_link",
+        ":rootfs_files",
+    ],
+)
 
-tune2fs -l "$image" 2>/dev/null | grep "Filesystem features:" | grep -qv "has_journal"
+sh_test(
+    name = "ext4_test",
+    srcs = ["ext4_test.sh"],
+    args = ["$(location :test_image)"],
+    data = [":test_image"],
+)

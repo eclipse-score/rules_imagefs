@@ -11,6 +11,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
-exports_files([
-    "ext4.bzl",
-])
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+package(default_visibility = ["//rules/linux:__subpackages__"])
+
+sh_binary(
+    name = "compute_size",
+    srcs = ["compute_size.sh"],
+)
+
+sh_binary(
+    name = "create_image",
+    srcs = ["create_image.sh"],
+)

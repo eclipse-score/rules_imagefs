@@ -1,0 +1,34 @@
+# *******************************************************************************
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+# *******************************************************************************
+
+load("@score_rules_imagefs//toolchains/linux:toolchains.bzl", "ext4_toolchain_config")
+
+ext4_toolchain_config(
+    name = "ext4_toolchain",
+    coreutils = "%{coreutils_pkg_repo}//:coreutils",
+    mke2fs = "@score_rules_imagefs//toolchains/linux/tools:mke2fs",
+)
+
+toolchain(
+    name = "ext4-%{tc_cpu}-%{tc_os}",
+    exec_compatible_with = [
+        "@platforms//cpu:x86_64",
+        "@platforms//os:linux",
+    ],
+    target_compatible_with = [
+        "@platforms//cpu:%{tc_cpu}",
+        "@platforms//os:%{tc_os}",
+    ],
+    toolchain = ":ext4_toolchain",
+    toolchain_type = "@score_rules_imagefs//toolchains/linux:%{tc_type}_toolchain_type",
+)

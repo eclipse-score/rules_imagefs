@@ -10,7 +10,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
-
-exports_files([
-    "ext4.bzl",
-])
+exports_files(
+    ["BUILD.template"],
+    visibility = ["//visibility:public"],
+)

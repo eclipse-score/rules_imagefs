@@ -11,6 +11,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
-exports_files([
-    "ext4.bzl",
-])
+package(default_visibility = ["//visibility:public"])
+
+toolchain_type(name = "ext4_toolchain_type")
