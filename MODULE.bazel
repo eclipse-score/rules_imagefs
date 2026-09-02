@@ -48,9 +48,3 @@ bazel_dep(name = "rules_pkg", version = "1.2.0")
 # (prebuilt uutils/coreutils binaries, no host tool required).
 # *******************************************************************************
 bazel_dep(name = "bazel_lib", version = "3.7.1")
-
-bazel_lib_toolchains = use_extension("@bazel_lib//lib:extensions.bzl", "toolchains")
-bazel_lib_toolchains.coreutils()
-use_repo(bazel_lib_toolchains, "coreutils_toolchains")
-
-register_toolchains("@coreutils_toolchains//:all")

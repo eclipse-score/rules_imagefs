@@ -13,9 +13,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
 
-# Re-stages ext4 rule srcs into a private scratch directory, then truncates and
-# formats the image.
-# Usage: create_image.sh <coreutils> <mke2fs> <name> <size_file> <output> [D dest | F dest src | L dest target]...
+# Stages ext4 rule srcs into a private scratch directory, computes the target
+# image size, then truncates and formats the image.
+# Usage: create_image.sh <coreutils> <mke2fs> <name> <output> [D dest | F dest src | L dest target]...
 set -eu
 
 coreutils="$1"
@@ -23,8 +23,6 @@ shift
 mke2fs="$1"
 shift
 name="$1"
-shift
-size_file="$1"
 shift
 output="$1"
 shift
@@ -55,6 +53,9 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
-read -r size_bytes < "$size_file"
+set -- $("$coreutils" du -sb "$stage")
+content_bytes="$1"
+size_bytes=$((content_bytes + content_bytes / 10 + 16777216))
+size_bytes=$(((size_bytes + 4095) / 4096 * 4096))
 "$coreutils" truncate -s "$size_bytes" "$output"
 "$mke2fs" -q -t ext4 -O ^has_journal -d "$stage" "$output"

@@ -19,7 +19,7 @@ load("@rules_pkg//pkg:providers.bzl", "PackageDirsInfo", "PackageFilegroupInfo",
 EXT4_TOOLCHAIN = "@score_rules_imagefs//toolchains/linux:ext4_toolchain_type"
 
 def _pkg_entry_args(ctx):
-    """Builds the flat "D dest | F dest src | L dest target" argv consumed by stage_and_measure.sh."""
+    """Builds the flat "D dest | F dest src | L dest target" argv consumed by create_image.sh."""
     args = []
     inputs = []
 
@@ -66,48 +66,19 @@ def _pkg_entry_args(ctx):
 
     return inputs, args
 
-def _compute_size(ctx, tool_info, entry_inputs, entry_args):
-    """Computes the target image size.
-
-    Delegates to the static //rules/linux/tools:compute_size script, driven
-    entirely by argv, so no script content is generated per-target. The script
-    stages srcs into its own private scratch directory (not a Bazel tree
-    artifact) since destinations may include intentionally dangling symlinks,
-    which Bazel disallows in declared directory outputs.
-    """
-    size_file = ctx.actions.declare_file("{}.size".format(ctx.attr.name))
-
-    args = ctx.actions.args()
-    args.add(tool_info.coreutils)
-    args.add(ctx.attr.name)
-    args.add(size_file.path)
-    args.add_all(entry_args)
-
-    ctx.actions.run(
-        executable = ctx.executable._compute_size_tool,
-        arguments = [args],
-        inputs = entry_inputs,
-        outputs = [size_file],
-        tools = tool_info.tools,
-        mnemonic = "ComputeExt4Size",
-        progress_message = "Computing ext4 image size for {}".format(ctx.label),
-    )
-    return size_file
-
-def _create_image(ctx, tool_info, entry_inputs, entry_args, size_file, out_image):
-    """Re-stages srcs and truncates/formats the final image via the static //rules/linux/tools:create_image script."""
+def _create_image(ctx, tool_info, entry_inputs, entry_args, out_image):
+    """Stages srcs and truncates/formats the image, in a single pass, via the static //rules/linux/tools:create_image script."""
     args = ctx.actions.args()
     args.add(tool_info.coreutils)
     args.add(tool_info.mke2fs)
     args.add(ctx.attr.name)
-    args.add(size_file.path)
     args.add(out_image.path)
     args.add_all(entry_args)
 
     ctx.actions.run(
         executable = ctx.executable._create_image_tool,
         arguments = [args],
-        inputs = entry_inputs + [size_file],
+        inputs = entry_inputs,
         outputs = [out_image],
         tools = tool_info.tools,
         mnemonic = "CreateExt4Image",
@@ -123,8 +94,7 @@ def _ext4_impl(ctx):
 
     tool_info = ctx.toolchains[EXT4_TOOLCHAIN].ext4_toolchain_info
 
-    size_file = _compute_size(ctx, tool_info, entry_inputs, entry_args)
-    _create_image(ctx, tool_info, entry_inputs, entry_args, size_file, out_image)
+    _create_image(ctx, tool_info, entry_inputs, entry_args, out_image)
 
     return [DefaultInfo(files = depset([out_image]))]
 
@@ -140,11 +110,6 @@ ext4 = rule(
         "out": attr.string(
             default = "",
             doc = "Optional output filename without path components.",
-        ),
-        "_compute_size_tool": attr.label(
-            default = Label("//rules/linux/tools:compute_size"),
-            cfg = "exec",
-            executable = True,
         ),
         "_create_image_tool": attr.label(
             default = Label("//rules/linux/tools:create_image"),
