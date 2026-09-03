@@ -14,8 +14,9 @@
 """ Module extension for setting up Image File System toolchains in Bazel.
 """
 
+load("@bazel_lib//lib:repositories.bzl", "register_coreutils_toolchains")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-load("@score_rules_imagefs//rules/qnx:imagefs_toolchain.bzl", "imagefs_toolchain")
+load("@score_rules_imagefs//rules:imagefs_toolchain.bzl", "imagefs_toolchain")
 
 # IFS interface API for archive tag class
 _attrs_sdp = {
@@ -84,9 +85,10 @@ _attrs_tc = {
             "qnx6fs",
             "fatfs",
             "diskimage",
+            "ext4",
         ],
         mandatory = True,
-        doc = "Image FileSystem type: ifs, qnx6fs, fatfs or diskimage",
+        doc = "Image FileSystem type: ifs, qnx6fs, fatfs, diskimage or ext4",
     ),
     "license_path": attr.string(
         default = "/opt/score_qnx/license/licenses",
@@ -182,6 +184,13 @@ def _impl(mctx):
         )
 
     for toolchain_info in toolchains:
+        coreutils_pkg_repo = ""
+        if toolchain_info["tc_type"] == "ext4":
+            # Pull coreutils (used for `truncate`, `du`, etc.) via bazel_lib instead
+            # of requiring consumers to set up its toolchain extension themselves.
+            coreutils_pkg_repo = "@{}_coreutils_linux_amd64".format(toolchain_info["name"])
+            register_coreutils_toolchains(name = "{}_coreutils".format(toolchain_info["name"]), register = False)
+
         imagefs_toolchain(
             name = toolchain_info["name"],
             tc_cpu = toolchain_info["tc_cpu"],
@@ -189,6 +198,7 @@ def _impl(mctx):
             tc_pkg_repo = toolchain_info["sdp_to_import"],
             sdp_version = toolchain_info["sdp_version"],
             tc_type = toolchain_info["tc_type"],
+            coreutils_pkg_repo = coreutils_pkg_repo,
         )
 
 imagefs = module_extension(
