@@ -1,6 +1,6 @@
 load("@rules_cc_autoconf//autoconf:autoconf.bzl", "autoconf")
 load("@rules_cc_autoconf//autoconf:autoconf_hdr.bzl", "autoconf_hdr")
-load("//bazel:autoconf_checks.bzl", "e2fs_checks")
+load("//bazel:autoconf.bzl", "e2fs_checks")
 
 package(default_visibility = ["//visibility:public"])
 

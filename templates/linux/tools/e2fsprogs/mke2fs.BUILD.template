@@ -230,7 +230,7 @@ cc_library(
 cc_library(
     name = "support",
     srcs = [
-        "lib/support/bthread.c",
+        "lib/support/argv_parse.c",
         "lib/support/cstring.c",
         "lib/support/devname.c",
         "lib/support/dict.c",
@@ -243,7 +243,6 @@ cc_library(
         "lib/support/quotaio.c",
         "lib/support/quotaio_tree.c",
         "lib/support/quotaio_v2.c",
-        "lib/support/thread.c",
         ":prof_err_c",
     ],
     copts = E2FS_COPTS,
