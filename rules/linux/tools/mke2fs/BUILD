@@ -1,0 +1,376 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
+load("//bazel:codegen.bzl", "awk_to_source", "compile_et", "copy_file", "gen_header")
+
+package(default_visibility = ["//visibility:public"])
+
+E2FSPROGS_VERSION = "1.47.4"
+
+# -I roots, mirroring MCONFIG's
+# `INCLUDES = -I. -I$(top_builddir)/lib -I$(top_srcdir)/lib`.
+#   lib              -> source headers (ext2fs/, support/, blkid/, ...)
+#   gen/lib          -> generated headers, parked beside their source peers
+#   bazel/config/lib -> config.h, dirpaths.h, *_types.h from //bazel:config
+# The two leaf dirs stand in for upstream's `-I.`: ext2_err.h, prof_err.h and
+# crc32c_table.h are included unqualified by their siblings, because make
+# compiles them from inside the matching build subdirectory.
+E2FS_INCLUDES = [
+    "lib",
+    "gen/lib",
+    "gen/lib/ext2fs",
+    "gen/lib/support",
+    "bazel/config/lib",
+]
+
+# Carried on the shared header target so they reach every translation unit once.
+E2FS_DEFINES = [
+    "HAVE_CONFIG_H",
+]
+
+E2FS_COPTS = [
+    "-Wno-unused-parameter",
+    "-Wno-sign-compare",
+    "-Wno-type-limits",
+    "-Wno-pointer-arith",
+]
+
+exports_files(glob([
+    "lib/**/*.in",
+    "lib/**/*.awk",
+    "lib/**/*.et",
+    "misc/*.awk",
+    "misc/*.in",
+]))
+
+# --- generated sources -------------------------------------------------------
+
+compile_et(
+    name = "ext2_err",
+    src = "lib/ext2fs/ext2_err.et.in",
+    out_dir = "gen/lib/ext2fs",
+    stem = "ext2_err",
+    version = E2FSPROGS_VERSION,
+)
+
+compile_et(
+    name = "prof_err",
+    src = "lib/support/prof_err.et",
+    out_dir = "gen/lib/support",
+    stem = "prof_err",
+)
+
+filegroup(
+    name = "ext2_err_c",
+    srcs = [":ext2_err"],
+    output_group = "srcs",
+)
+
+filegroup(
+    name = "ext2_err_h",
+    srcs = [":ext2_err"],
+    output_group = "hdrs",
+)
+
+filegroup(
+    name = "prof_err_c",
+    srcs = [":prof_err"],
+    output_group = "srcs",
+)
+
+filegroup(
+    name = "prof_err_h",
+    srcs = [":prof_err"],
+    output_group = "hdrs",
+)
+
+cc_binary(
+    name = "gen_crc32ctable",
+    srcs = [
+        "lib/ext2fs/crc32c_defs.h",
+        "lib/ext2fs/gen_crc32ctable.c",
+    ],
+)
+
+gen_header(
+    name = "crc32c_table",
+    out_dir = "gen/lib/ext2fs",
+    out_name = "crc32c_table.h",
+    tool = ":gen_crc32ctable",
+)
+
+awk_to_source(
+    name = "default_profile",
+    src = "misc/mke2fs.conf.in",
+    out_dir = "gen/misc",
+    out_name = "default_profile.c",
+    script = "misc/profile-to-c.awk",
+)
+
+copy_file(
+    name = "blkid_h",
+    src = "lib/blkid/blkid.h.in",
+    out_dir = "gen/lib/blkid",
+    out_name = "blkid.h",
+)
+
+copy_file(
+    name = "uuid_h",
+    src = "lib/uuid/uuid.h.in",
+    out_dir = "gen/lib/uuid",
+    out_name = "uuid.h",
+)
+
+# --- libraries ---------------------------------------------------------------
+
+# One flat header target, mirroring how autotools exposes every header through
+# a shared -I root rather than through per-library dependencies. Without this,
+# e2p and support form a dependency cycle: e2p/ls.c includes support/quotaio.h
+# while support/mkquota.c includes e2p/e2p.h.
+cc_library(
+    name = "headers",
+    hdrs = glob(["lib/**/*.h"]) + [
+        "version.h",
+        ":blkid_h",
+        ":crc32c_table",
+        ":ext2_err_h",
+        ":prof_err_h",
+        ":uuid_h",
+        "//bazel:config",
+    ],
+    defines = E2FS_DEFINES,
+    includes = E2FS_INCLUDES,
+)
+
+cc_library(
+    name = "com_err",
+    srcs = [
+        "lib/et/com_err.c",
+        "lib/et/error_message.c",
+        "lib/et/et_name.c",
+        "lib/et/init_et.c",
+    ],
+    copts = E2FS_COPTS,
+    deps = [":headers"],
+)
+
+cc_library(
+    name = "uuid",
+    srcs = [
+        "lib/uuid/clear.c",
+        "lib/uuid/compare.c",
+        "lib/uuid/copy.c",
+        "lib/uuid/gen_uuid.c",
+        "lib/uuid/isnull.c",
+        "lib/uuid/pack.c",
+        "lib/uuid/parse.c",
+        "lib/uuid/unpack.c",
+        "lib/uuid/unparse.c",
+        "lib/uuid/uuid_time.c",
+    ],
+    copts = E2FS_COPTS,
+    deps = [":headers"],
+)
+
+cc_library(
+    name = "blkid",
+    srcs = [
+        "lib/blkid/cache.c",
+        "lib/blkid/dev.c",
+        "lib/blkid/devname.c",
+        "lib/blkid/devno.c",
+        "lib/blkid/getsize.c",
+        "lib/blkid/llseek.c",
+        "lib/blkid/probe.c",
+        "lib/blkid/read.c",
+        "lib/blkid/resolve.c",
+        "lib/blkid/save.c",
+        "lib/blkid/tag.c",
+        "lib/blkid/version.c",
+    ],
+    copts = E2FS_COPTS,
+    deps = [
+        ":headers",
+        ":uuid",
+    ],
+)
+
+cc_library(
+    name = "e2p",
+    srcs = [
+        "lib/e2p/crypto_mode.c",
+        "lib/e2p/encoding.c",
+        "lib/e2p/errcode.c",
+        "lib/e2p/feature.c",
+        "lib/e2p/fgetflags.c",
+        "lib/e2p/fgetproject.c",
+        "lib/e2p/fgetversion.c",
+        "lib/e2p/fsetflags.c",
+        "lib/e2p/fsetproject.c",
+        "lib/e2p/fsetversion.c",
+        "lib/e2p/getflags.c",
+        "lib/e2p/getversion.c",
+        "lib/e2p/hashstr.c",
+        "lib/e2p/iod.c",
+        "lib/e2p/ljs.c",
+        "lib/e2p/ls.c",
+        "lib/e2p/mntopts.c",
+        "lib/e2p/ostype.c",
+        "lib/e2p/parse_num.c",
+        "lib/e2p/pe.c",
+        "lib/e2p/percent.c",
+        "lib/e2p/pf.c",
+        "lib/e2p/ps.c",
+        "lib/e2p/setflags.c",
+        "lib/e2p/setversion.c",
+        "lib/e2p/uuid.c",
+    ],
+    copts = E2FS_COPTS,
+    deps = [":headers"],
+)
+
+cc_library(
+    name = "support",
+    srcs = [
+        "lib/support/bthread.c",
+        "lib/support/cstring.c",
+        "lib/support/devname.c",
+        "lib/support/dict.c",
+        "lib/support/mkquota.c",
+        "lib/support/parse_qtype.c",
+        "lib/support/plausible.c",
+        "lib/support/print_fs_flags.c",
+        "lib/support/profile.c",
+        "lib/support/profile_helpers.c",
+        "lib/support/quotaio.c",
+        "lib/support/quotaio_tree.c",
+        "lib/support/quotaio_v2.c",
+        "lib/support/thread.c",
+        ":prof_err_c",
+    ],
+    copts = E2FS_COPTS,
+    deps = [
+        ":blkid",
+        ":com_err",
+        ":e2p",
+        ":headers",
+    ],
+)
+
+cc_library(
+    name = "ext2fs",
+    srcs = [
+        "lib/ext2fs/alloc.c",
+        "lib/ext2fs/alloc_sb.c",
+        "lib/ext2fs/alloc_stats.c",
+        "lib/ext2fs/alloc_tables.c",
+        "lib/ext2fs/atexit.c",
+        "lib/ext2fs/badblocks.c",
+        "lib/ext2fs/bb_compat.c",
+        "lib/ext2fs/bb_inode.c",
+        "lib/ext2fs/bitmaps.c",
+        "lib/ext2fs/bitops.c",
+        "lib/ext2fs/blkmap64_ba.c",
+        "lib/ext2fs/blkmap64_rb.c",
+        "lib/ext2fs/blknum.c",
+        "lib/ext2fs/block.c",
+        "lib/ext2fs/bmap.c",
+        "lib/ext2fs/check_desc.c",
+        "lib/ext2fs/closefs.c",
+        "lib/ext2fs/crc16.c",
+        "lib/ext2fs/crc32c.c",
+        "lib/ext2fs/csum.c",
+        "lib/ext2fs/dblist.c",
+        "lib/ext2fs/dblist_dir.c",
+        "lib/ext2fs/dir_iterate.c",
+        "lib/ext2fs/dirblock.c",
+        "lib/ext2fs/dirhash.c",
+        "lib/ext2fs/dupfs.c",
+        "lib/ext2fs/expanddir.c",
+        "lib/ext2fs/ext_attr.c",
+        "lib/ext2fs/extent.c",
+        "lib/ext2fs/fallocate.c",
+        "lib/ext2fs/fileio.c",
+        "lib/ext2fs/finddev.c",
+        "lib/ext2fs/flushb.c",
+        "lib/ext2fs/freefs.c",
+        "lib/ext2fs/gen_bitmap.c",
+        "lib/ext2fs/gen_bitmap64.c",
+        "lib/ext2fs/get_num_dirs.c",
+        "lib/ext2fs/get_pathname.c",
+        "lib/ext2fs/getenv.c",
+        "lib/ext2fs/getsectsize.c",
+        "lib/ext2fs/getsize.c",
+        "lib/ext2fs/hashmap.c",
+        "lib/ext2fs/i_block.c",
+        "lib/ext2fs/icount.c",
+        "lib/ext2fs/ind_block.c",
+        "lib/ext2fs/initialize.c",
+        "lib/ext2fs/inline.c",
+        "lib/ext2fs/inline_data.c",
+        "lib/ext2fs/inode.c",
+        "lib/ext2fs/inode_io.c",
+        "lib/ext2fs/io_manager.c",
+        "lib/ext2fs/ismounted.c",
+        "lib/ext2fs/link.c",
+        "lib/ext2fs/llseek.c",
+        "lib/ext2fs/lookup.c",
+        "lib/ext2fs/mkdir.c",
+        "lib/ext2fs/mkjournal.c",
+        "lib/ext2fs/mmp.c",
+        "lib/ext2fs/namei.c",
+        "lib/ext2fs/native.c",
+        "lib/ext2fs/newdir.c",
+        "lib/ext2fs/nls_utf8.c",
+        "lib/ext2fs/openfs.c",
+        "lib/ext2fs/orphan.c",
+        "lib/ext2fs/progress.c",
+        "lib/ext2fs/punch.c",
+        "lib/ext2fs/qcow2.c",
+        "lib/ext2fs/rbtree.c",
+        "lib/ext2fs/read_bb.c",
+        "lib/ext2fs/read_bb_file.c",
+        "lib/ext2fs/res_gdt.c",
+        "lib/ext2fs/rw_bitmaps.c",
+        "lib/ext2fs/sha512.c",
+        "lib/ext2fs/sparse_io.c",
+        "lib/ext2fs/swapfs.c",
+        "lib/ext2fs/symlink.c",
+        "lib/ext2fs/tdb.c",
+        "lib/ext2fs/test_io.c",
+        "lib/ext2fs/undo_io.c",
+        "lib/ext2fs/unix_io.c",
+        "lib/ext2fs/unlink.c",
+        "lib/ext2fs/valid_blk.c",
+        "lib/ext2fs/version.c",
+        "lib/ext2fs/write_bb_file.c",
+        ":ext2_err_c",
+    ],
+    copts = E2FS_COPTS,
+    deps = [
+        ":com_err",
+        ":headers",
+    ],
+)
+
+# --- mke2fs ------------------------------------------------------------------
+
+cc_binary(
+    name = "mke2fs",
+    srcs = [
+        "misc/create_inode.c",
+        "misc/create_inode_libarchive.c",
+        "misc/mk_hugefiles.c",
+        "misc/mke2fs.c",
+        "misc/util.c",
+        ":default_profile",
+    ] + glob(["misc/*.h"]),
+    copts = E2FS_COPTS,
+    deps = [
+        ":blkid",
+        ":com_err",
+        ":e2p",
+        ":ext2fs",
+        ":headers",
+        ":support",
+        ":uuid",
+    ],
+)

@@ -1,0 +1,83 @@
+load("@rules_cc_autoconf//autoconf:autoconf.bzl", "autoconf")
+load("@rules_cc_autoconf//autoconf:autoconf_hdr.bzl", "autoconf_hdr")
+load("//bazel:autoconf_checks.bzl", "e2fs_checks")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "autoconf_checks.bzl",
+    "empty_asm_types.h",
+    "public_config.h.in",
+])
+
+autoconf(
+    name = "checks",
+    checks = e2fs_checks(),
+)
+
+autoconf_hdr(
+    name = "config_h",
+    out = "config/lib/config.h",
+    template = "//:lib/config.h.in",
+    deps = [":checks"],
+)
+
+autoconf_hdr(
+    name = "public_config_h",
+    out = "config/public_config.h",
+    template = "public_config.h.in",
+    deps = [":checks"],
+)
+
+autoconf_hdr(
+    name = "dirpaths_h",
+    out = "config/lib/dirpaths.h",
+    substitutions = {
+        "@datadir@": "/usr/share",
+        "@root_sysconfdir@": "/etc",
+    },
+    template = "//:lib/dirpaths.h.in",
+)
+
+autoconf_hdr(
+    name = "ext2_types_h",
+    out = "config/lib/ext2fs/ext2_types.h",
+    inlines = {
+        "@ASM_TYPES_HEADER@": "empty_asm_types.h",
+        "@PUBLIC_CONFIG_HEADER@": ":public_config_h",
+    },
+    mode = "all",
+    template = "//:lib/ext2fs/ext2_types.h.in",
+    deps = [":checks"],
+)
+
+autoconf_hdr(
+    name = "blkid_types_h",
+    out = "config/lib/blkid/blkid_types.h",
+    inlines = {
+        "@ASM_TYPES_HEADER@": "empty_asm_types.h",
+    },
+    mode = "all",
+    template = "//:lib/blkid/blkid_types.h.in",
+    deps = [":checks"],
+)
+
+autoconf_hdr(
+    name = "uuid_types_h",
+    out = "config/lib/uuid/uuid_types.h",
+    mode = "all",
+    template = "//:lib/uuid/uuid_types.h.in",
+    deps = [":checks"],
+)
+
+filegroup(
+    name = "config",
+    srcs = [
+        ":blkid_types_h",
+        ":config_h",
+        ":dirpaths_h",
+        ":ext2_types_h",
+        ":public_config_h",
+        ":uuid_types_h",
+    ],
+)
