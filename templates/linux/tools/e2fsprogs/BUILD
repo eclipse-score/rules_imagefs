@@ -10,33 +10,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
-
-load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "pkg_mklink")
-load("@score_rules_imagefs//rules/linux:ext4.bzl", "ext4")
-
-pkg_files(
-    name = "rootfs_files",
-    srcs = ["hello.txt"],
-    prefix = "etc",
-)
-
-pkg_mklink(
-    name = "hello_link",
-    link_name = "usr/share/hello.txt",
-    target = "/etc/hello.txt",
-)
-
-ext4(
-    name = "test_image",
-    srcs = [
-        ":hello_link",
-        ":rootfs_files",
-    ],
-)
-
-sh_test(
-    name = "ext4_test",
-    srcs = ["ext4_test.sh"],
-    args = ["$(location :test_image)"],
-    data = [":test_image"],
+exports_files(
+    ["mke2fs.BUILD.template"],
+    visibility = ["//visibility:public"],
 )
