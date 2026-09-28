@@ -33,6 +33,12 @@ E2FS_COPTS = [
     "-Wno-pointer-arith",
 ]
 
+# Keep GPL-2.0-derived compile/link outputs out of any local disk cache or
+# remote cache (native cc_* rules honor these tags on the actions they
+# create), so a downstream consumer's CI can't leak them via a shared cache
+# (e.g. GitHub Actions cache) without the accompanying NOTICE/source offer.
+NO_CACHE_TAGS = ["no-cache", "no-remote-cache", "no-remote-exec"]
+
 exports_files(glob([
     "lib/**/*.in",
     "lib/**/*.awk",
@@ -104,6 +110,7 @@ cc_binary(
         "lib/ext2fs/crc32c_defs.h",
         "lib/ext2fs/gen_crc32ctable.c",
     ],
+    tags = NO_CACHE_TAGS,
 )
 
 gen_header(
@@ -165,6 +172,7 @@ cc_library(
         "lib/et/init_et.c",
     ],
     copts = E2FS_COPTS,
+    tags = NO_CACHE_TAGS,
     deps = [":headers"],
 )
 
@@ -183,6 +191,7 @@ cc_library(
         "lib/uuid/uuid_time.c",
     ],
     copts = E2FS_COPTS,
+    tags = NO_CACHE_TAGS,
     deps = [":headers"],
 )
 
@@ -203,6 +212,7 @@ cc_library(
         "lib/blkid/version.c",
     ],
     copts = E2FS_COPTS,
+    tags = NO_CACHE_TAGS,
     deps = [
         ":headers",
         ":uuid",
@@ -240,6 +250,7 @@ cc_library(
         "lib/e2p/uuid.c",
     ],
     copts = E2FS_COPTS,
+    tags = NO_CACHE_TAGS,
     deps = [":headers"],
 )
 
@@ -262,6 +273,7 @@ cc_library(
         ":prof_err_c",
     ],
     copts = E2FS_COPTS,
+    tags = NO_CACHE_TAGS,
     deps = [
         ":blkid",
         ":com_err",
@@ -360,6 +372,7 @@ cc_library(
         ":ext2_err_c",
     ],
     copts = E2FS_COPTS,
+    tags = NO_CACHE_TAGS,
     deps = [
         ":com_err",
         ":headers",
@@ -379,6 +392,7 @@ cc_binary(
         ":default_profile",
     ] + glob(["misc/*.h"]),
     copts = E2FS_COPTS,
+    tags = NO_CACHE_TAGS,
     deps = [
         ":blkid",
         ":com_err",

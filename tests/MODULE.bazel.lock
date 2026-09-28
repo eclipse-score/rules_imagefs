@@ -1793,12 +1793,20 @@
     },
     "@@score_rules_imagefs+//extensions:imagefs.bzl%imagefs": {
       "general": {
-        "bzlTransitiveDigest": "asMY0SPz03A/G9CDd6l08pRCpYMW21HJlHtJrR7h9nA=",
+        "bzlTransitiveDigest": "LURGmZBTVmnBnO8WTQk69DmKJyA039+DhA3r1RihzhM=",
         "usagesDigest": "u4lugMattMnDLuZJLp66Xfyjtij0LpR3fJjUUzSUJgU=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
+          "e2fsprogs": {
+            "repoRuleId": "@@score_rules_imagefs+//rules/linux/tools:e2fsprogs.bzl%e2fsprogs",
+            "attributes": {
+              "url": "https://github.com/tytso/e2fsprogs/archive/refs/tags/v1.47.4.tar.gz",
+              "sha256": "9f82eaa7002673291629077b80ee005cadfcd49854907a22007fed70b0ef596e",
+              "strip_prefix": "e2fsprogs-1.47.4"
+            }
+          },
           "score_qnx_x86_64_ext4_toolchain_coreutils_darwin_amd64": {
             "repoRuleId": "@@bazel_lib+//lib/private:coreutils_toolchain.bzl%coreutils_platform_repo",
             "attributes": {
@@ -1845,14 +1853,6 @@
             "repoRuleId": "@@bazel_lib+//lib/private:coreutils_toolchain.bzl%coreutils_toolchains_repo",
             "attributes": {
               "user_repository_name": "score_qnx_x86_64_ext4_toolchain_coreutils"
-            }
-          },
-          "e2fsprogs": {
-            "repoRuleId": "@@score_rules_imagefs+//rules/linux/tools:e2fsprogs.bzl%e2fsprogs",
-            "attributes": {
-              "url": "https://github.com/tytso/e2fsprogs/archive/refs/tags/v1.47.4.tar.gz",
-              "sha256": "9f82eaa7002673291629077b80ee005cadfcd49854907a22007fed70b0ef596e",
-              "strip_prefix": "e2fsprogs-1.47.4"
             }
           },
           "score_qnx_x86_64_ext4_toolchain": {

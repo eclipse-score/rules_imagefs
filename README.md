@@ -62,7 +62,7 @@ Builds a composite disk image from a main disk layout build file. The rule suppo
 ### `ext4`
 Builds an ext4 filesystem image from the provided `srcs` files without a journal.
 
-The rule invokes `mke2fs` through the `//toolchains/linux:ext4_toolchain_type` toolchain. No toolchain of this type is registered by default, so a `type = "ext4"` toolchain must be configured before the rule can build (see below). The `imagefs` module extension's `ext4` toolchain provisions a hermetic `coreutils` automatically (prebuilt uutils binaries via `bazel_lib`, used for `du`, `cp`, `mkdir`, `ln`, `truncate`), but currently still shells out to whatever `mke2fs` is on the exec host's `PATH` — `sdp_to_import`/`sdp` are not yet wired up to supply `mke2fs` (an accepted interim limitation). To fully control both tools yourself, register a toolchain directly via `ext4_toolchain_config` instead (see below).
+The rule invokes `mke2fs` through the `//toolchains/linux:ext4_toolchain_type` toolchain. No toolchain of this type is registered by default, so a `type = "ext4"` toolchain must be configured before the rule can build (see below). The `imagefs` module extension's `ext4` toolchain tag provisions a hermetic `coreutils` automatically (prebuilt uutils binaries via `bazel_lib`, used for `du`, `cp`, `mkdir`, `ln`, `truncate`) and builds `mke2fs` from the upstream e2fsprogs source (fetched and compiled by the extension, not read from the exec host's `PATH`) — see [Environment and licensing](#environment-and-licensing) for that source's license terms. To fully control both tools yourself, register a toolchain directly via `ext4_toolchain_config` instead (see below).
 
 ## Module usage
 
@@ -132,7 +132,7 @@ Supported `type` values:
 - `diskimage`
 - `ext4`
 
-For `ext4`, no `sdp`/`sdp_to_import` is needed — the extension provisions a hermetic `coreutils` for you and wires `mke2fs` to the exec host's `PATH` (see [`ext4`](#ext4) above):
+For `ext4`, no `sdp`/`sdp_to_import` is needed — the extension provisions a hermetic `coreutils` for you and builds `mke2fs` from the upstream e2fsprogs source (see [`ext4`](#ext4) above):
 
 ```starlark
 imagefs.toolchain(
@@ -258,7 +258,7 @@ The QNX image toolchain config sets up runtime environment variables for the und
 - `QNX_TARGET`
 - `PATH`
 
-The `ext4` rule's toolchain builds `mke2fs` from the upstream e2fsprogs source (see the `e2fsprogs` extension tag). That source is licensed under GPL-2.0 (with LGPL-2.0/BSD/MIT-licensed subcomponents), separately from this repository's own Apache-2.0 license — see the "Third-party Content" section of [NOTICE](NOTICE) before redistributing a built `mke2fs` binary.
+The `imagefs` module extension's `type = "ext4"` toolchain tag builds `mke2fs` from the upstream e2fsprogs source. That source is licensed under GPL-2.0 (with LGPL-2.0/BSD/MIT-licensed subcomponents), separately from this repository's own Apache-2.0 license — see the "Third-party Content" section of [NOTICE](NOTICE) before redistributing a built `mke2fs` binary.
 
 ## Development
 
