@@ -49,6 +49,15 @@ upstream `NOTICE` and `lib/uuid/COPYING` license texts via a public
 responsible for carrying these notices, and a corresponding source offer,
 along with it.
 
+Every compiled target in that BUILD file is tagged `no-cache`,
+`no-remote-cache`, and `no-remote-exec`, so its compile/link outputs are
+never written to a Bazel disk cache or remote cache. Consumers should still
+ensure their own CI caches Bazel's `--disk_cache`/`--remote_cache` paths
+specifically, rather than the raw build output tree (e.g. the whole
+`~/.cache/bazel` output-user-root) — caching the latter would bypass these
+tags and could incidentally distribute built GPL-2.0 binaries to anyone able
+to restore that cache (e.g. via a pull request).
+
 ## Cryptography
 
 Content may contain encryption software. The country in which you are currently

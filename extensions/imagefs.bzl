@@ -184,6 +184,16 @@ def _impl(mctx):
             strip_prefix = archive_info["strip_prefix"],
         )
 
+    # Shared across every ext4 toolchain tag: created at most once below, since
+    # the source fetched is the same regardless of which tag triggers it.
+    if any([toolchain_info["tc_type"] == "ext4" for toolchain_info in toolchains]):
+        e2fsprogs(
+            name = "e2fsprogs",
+            url = "https://github.com/tytso/e2fsprogs/archive/refs/tags/v1.47.4.tar.gz",
+            sha256 = "9f82eaa7002673291629077b80ee005cadfcd49854907a22007fed70b0ef596e",
+            strip_prefix = "e2fsprogs-1.47.4",
+        )
+
     for toolchain_info in toolchains:
         args = {
             "name": toolchain_info["name"],
@@ -200,12 +210,6 @@ def _impl(mctx):
             # of requiring consumers to set up its toolchain extension themselves.
             args["coreutils_pkg_repo"] = "@{}_coreutils_linux_amd64".format(toolchain_info["name"])
             register_coreutils_toolchains(name = "{}_coreutils".format(toolchain_info["name"]), register = False)
-            e2fsprogs(
-                name = "e2fsprogs",
-                url = "https://github.com/tytso/e2fsprogs/archive/refs/tags/v1.47.4.tar.gz",
-                sha256 = "9f82eaa7002673291629077b80ee005cadfcd49854907a22007fed70b0ef596e",
-                strip_prefix = "e2fsprogs-1.47.4",
-            )
             args["e2fsprogs_pkg_repo"] = "@e2fsprogs"
 
         imagefs_toolchain(**args)
