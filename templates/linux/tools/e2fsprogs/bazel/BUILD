@@ -10,7 +10,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 # *******************************************************************************
-
-# Bazel
-bazel-*
-.vscode/
+exports_files(
+    [
+        "autoconf_defs.bzl.template",
+        "autoconf.BUILD.template",
+        "codegen.bzl.template",
+    ],
+    visibility = ["//visibility:public"],
+)

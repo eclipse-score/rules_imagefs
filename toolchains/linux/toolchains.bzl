@@ -43,7 +43,7 @@ ext4_toolchain_config = rule(
             cfg = "exec",
             executable = True,
             mandatory = True,
-            doc = "Executable target providing the mke2fs tool. No hermetic prebuilt is available; build from e2fsprogs source (e.g. via rules_foreign_cc) or wrap a distro binary.",
+            doc = "Executable target providing the mke2fs tool. No hermetic prebuilt is available; build from e2fsprogs source (e.g. via rules_foreign_cc) or wrap a distro binary. Note: e2fsprogs is GPL-2.0-licensed (see the 'Third-party Content' section of //:NOTICE), separately from this repository's Apache-2.0 license.",
         ),
         "coreutils": attr.label(
             cfg = "exec",

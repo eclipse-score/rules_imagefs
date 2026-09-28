@@ -22,6 +22,33 @@ https://www.apache.org/licenses/LICENSE-2.0.
 
 SPDX-License-Identifier: Apache-2.0
 
+## Third-party Content
+
+This project fetches and builds the following third-party content, which is
+**not** covered by the Apache-2.0 license declared above.
+
+mke2fs (e2fsprogs) (1.47.4)
+
+* License: GPL-2.0-only AND LGPL-2.0-only AND BSD-3-Clause AND MIT
+* Project: https://github.com/tytso/e2fsprogs
+* Source: https://github.com/tytso/e2fsprogs/archive/refs/tags/v1.47.4.tar.gz
+
+The `ext4` rule's toolchain builds the `mke2fs` executable from the e2fsprogs
+source tree (fetched by the `e2fsprogs` repository rule, see
+`rules/linux/tools/e2fsprogs.bzl`) and uses it only as a build-time tool to
+format generated filesystem images; no e2fsprogs source or object code is
+linked into, or distributed as part of, this project's own Apache-2.0
+licensed targets. Per upstream's own `NOTICE`, e2fsprogs is GPL-2.0-only
+except for `lib/ext2fs`/`lib/e2p` (LGPL-2.0-only), `lib/uuid` (BSD-3-Clause,
+see `lib/uuid/COPYING`), and `lib/et`/`lib/ss` (MIT). Because the built
+`mke2fs` binary links code from all of these, the executable as a whole is
+governed by GPL-2.0-only. The generated `mke2fs` build (see
+`templates/linux/tools/e2fsprogs/mke2fs.BUILD.template`) exposes the
+upstream `NOTICE` and `lib/uuid/COPYING` license texts via a public
+`license_files` filegroup; anyone redistributing a built `mke2fs` binary is
+responsible for carrying these notices, and a corresponding source offer,
+along with it.
+
 ## Cryptography
 
 Content may contain encryption software. The country in which you are currently

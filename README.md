@@ -258,6 +258,8 @@ The QNX image toolchain config sets up runtime environment variables for the und
 - `QNX_TARGET`
 - `PATH`
 
+The `ext4` rule's toolchain builds `mke2fs` from the upstream e2fsprogs source (see the `e2fsprogs` extension tag). That source is licensed under GPL-2.0 (with LGPL-2.0/BSD/MIT-licensed subcomponents), separately from this repository's own Apache-2.0 license — see the "Third-party Content" section of [NOTICE](NOTICE) before redistributing a built `mke2fs` binary.
+
 ## Development
 
 - `//:format.fix`
@@ -267,3 +269,5 @@ The QNX image toolchain config sets up runtime environment variables for the und
 ## License
 
 Apache License 2.0
+
+See [NOTICE](NOTICE) for third-party source (e.g. e2fsprogs/`mke2fs`) fetched and built by this repository's rules under different license terms.

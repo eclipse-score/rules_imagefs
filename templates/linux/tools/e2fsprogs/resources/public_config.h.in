@@ -1,0 +1,4 @@
+/* These defines are needed for the public ext2fs.h header file */
+#undef HAVE_SYS_TYPES_H
+#undef SIZEOF_TIME_T
+#undef WORDS_BIGENDIAN

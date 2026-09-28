@@ -16,7 +16,7 @@ load("@score_rules_imagefs//toolchains/linux:toolchains.bzl", "ext4_toolchain_co
 ext4_toolchain_config(
     name = "ext4_toolchain",
     coreutils = "%{coreutils_pkg_repo}//:coreutils",
-    mke2fs = "@score_rules_imagefs//toolchains/linux/tools:mke2fs",
+    mke2fs = "%{e2fsprogs_pkg_repo}//:mke2fs",
 )
 
 toolchain(

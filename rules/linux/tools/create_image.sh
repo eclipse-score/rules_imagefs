@@ -57,5 +57,7 @@ set -- $("$coreutils" du -sb "$stage")
 content_bytes="$1"
 size_bytes=$((content_bytes + content_bytes / 10 + 16777216))
 size_bytes=$(((size_bytes + 4095) / 4096 * 4096))
+echo "Using coreutils: $coreutils"
 "$coreutils" truncate -s "$size_bytes" "$output"
+echo "Using mke2fs: $mke2fs"
 "$mke2fs" -q -t ext4 -O ^has_journal -d "$stage" "$output"
