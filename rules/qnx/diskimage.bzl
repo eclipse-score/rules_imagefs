@@ -48,7 +48,7 @@ def _diskimage_impl(ctx):
 
     args.add_all([
         "-o",
-        out_img.path,
+        out_image.path,
         "-c",
         main_build_file_string_path,
     ])
