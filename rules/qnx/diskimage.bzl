@@ -19,7 +19,8 @@ filesystems, etc.). The diskimage tool creates a composite disk image from this
 specification.
 """
 
-load(":common/common.bzl", "gen_image", "prep_inputs", "prep_output", _common_rule_attrs = "COMMON_RULES_ATTRS")
+load(":common/common.bzl", "gen_image", "prep_output", _common_rule_attrs = "COMMON_RULES_ATTRS")
+load(":common/qnx_image.bzl", "gen_image_definition")
 
 QNX_FS_TOOLCHAIN = "@score_rules_imagefs//toolchains/qnx:diskimage_toolchain_type"
 
@@ -37,9 +38,33 @@ def _diskimage_impl(ctx):
 
         This function uses the QNX diskimage utility to create a composite
         disk image from the provided build file specification.
+
+        The QNX `diskimage` host tool only understands a disk-layout build
+        file (cylinders/heads/partitions/...); it does not understand the
+        mkifs-style "[+include] <path>" directive emitted by the shared
+        build-file generator, nor the file-placement (mtime/uid/gid) build
+        file that the shared pkg helper generates for filesystem content.
+        So the user-provided build file(s) are concatenated directly here,
+        while the partition image files referenced from `srcs` are still
+        staged as action inputs via `fs_contents`.
     """
     out_image = prep_output(ctx)
-    main_build_file_string_path, inputs = prep_inputs(ctx)
+    _main_build_file, _build_files, fs_contents = gen_image_definition(
+        ctx,
+        srcs = ctx.attr.srcs,
+        extra_build_file = ctx.file.build_file,
+        extra_build_files = ctx.files.extra_build_files,
+    )
+
+    disk_build_files = [ctx.file.build_file] + ctx.files.extra_build_files
+    flat_build_file = ctx.actions.declare_file("{}_flat.build".format(ctx.attr.name))
+    ctx.actions.run_shell(
+        outputs = [flat_build_file],
+        inputs = disk_build_files,
+        arguments = [flat_build_file.path] + [f.path for f in disk_build_files],
+        command = "set -euo pipefail; out=\"$1\"; shift; : > \"$out\"; for f in \"$@\"; do cat \"$f\" >> \"$out\"; printf '\\n' >> \"$out\"; done",
+        mnemonic = "QnxDiskimageFlattenBuildFile",
+    )
 
     args = ctx.actions.args()
 
@@ -50,12 +75,12 @@ def _diskimage_impl(ctx):
         "-o",
         out_image.path,
         "-c",
-        main_build_file_string_path,
+        flat_build_file.path,
     ])
 
     return gen_image(
         ctx,
-        inputs = inputs,
+        inputs = fs_contents + [flat_build_file],
         outputs = [out_image],
         arguments = [args],
         image_tc_type = QNX_FS_TOOLCHAIN,
