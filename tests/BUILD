@@ -13,11 +13,22 @@
 
 load("@rules_pkg//pkg:mappings.bzl", "pkg_files", "pkg_mklink")
 load("@score_rules_imagefs//rules/linux:ext4.bzl", "ext4")
+load(":directory_artifact.bzl", "directory_artifact")
+
+directory_artifact(
+    name = "directory_artifact",
+)
 
 pkg_files(
     name = "rootfs_files",
     srcs = ["hello.txt"],
     prefix = "etc",
+)
+
+pkg_files(
+    name = "directory_files",
+    srcs = [":directory_artifact"],
+    prefix = "opt",
 )
 
 pkg_mklink(
@@ -29,6 +40,7 @@ pkg_mklink(
 ext4(
     name = "test_image",
     srcs = [
+        ":directory_files",
         ":hello_link",
         ":rootfs_files",
     ],

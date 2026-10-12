@@ -39,7 +39,7 @@ while [ "$#" -gt 0 ]; do
             shift 2
             ;;
         F)
-            "$coreutils" cp "$3" "$stage/$2"
+            "$coreutils" cp -rL "$3" "$stage/$2"
             shift 3
             ;;
         L)

@@ -20,6 +20,9 @@ image="$1"
 content=$(DEBUGFS_PAGER=cat debugfs -R "cat /etc/hello.txt" "$image" 2>/dev/null)
 test "$content" = "hello from ext4"
 
+content=$(DEBUGFS_PAGER=cat debugfs -R "cat /opt/directory_artifact/nested/hello.txt" "$image" 2>/dev/null)
+test "$content" = "hello from directory artifact"
+
 DEBUGFS_PAGER=cat debugfs -R "stat /etc/hello.txt" "$image" 2>&1 | grep -q "Type: regular"
 DEBUGFS_PAGER=cat debugfs -R "stat /usr/share/hello.txt" "$image" 2>&1 | grep -q "Type: symlink"
 DEBUGFS_PAGER=cat debugfs -R "stat /usr/share/hello.txt" "$image" 2>&1 | grep -q 'Fast link dest: "/etc/hello.txt"'
