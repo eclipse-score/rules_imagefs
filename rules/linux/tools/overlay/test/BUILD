@@ -19,6 +19,6 @@ py_test(
     name = "inject_overlay_test",
     srcs = ["inject_overlay_test.py"],
     imports = [".."],
-    deps = ["//rules/linux/tools/overlay:inject_overlay"],
     visibility = ["//visibility:public"],
+    deps = ["//rules/linux/tools/overlay:inject_overlay"],
 )
