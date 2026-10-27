@@ -42,7 +42,7 @@ from pathlib import Path
 def get_partition_info(image_path: str, partition: int) -> tuple[int, int]:
     """
     Get partition offset and size using partx.
-    
+
     Returns:
         Tuple of (offset_bytes, size_bytes)
     """
@@ -52,7 +52,7 @@ def get_partition_info(image_path: str, partition: int) -> tuple[int, int]:
         text=True,
         check=True,
     )
-    
+
     for line in result.stdout.strip().split("\n"):
         parts = line.split()
         if len(parts) >= 4 and parts[0] == str(partition):
@@ -63,14 +63,14 @@ def get_partition_info(image_path: str, partition: int) -> tuple[int, int]:
             offset = start_sector * sector_size
             size = sectors * sector_size
             return offset, size
-    
+
     raise ValueError(f"Partition {partition} not found in {image_path}")
 
 
 def extract_partition(image_path: str, partition: int, output_path: str) -> None:
     """Extract a partition to a file using dd."""
     offset, size = get_partition_info(image_path, partition)
-    
+
     # Use 1M block size for performance; byte-accurate via skip_bytes/count_bytes
     subprocess.run(
         [
@@ -90,7 +90,7 @@ def extract_partition(image_path: str, partition: int, output_path: str) -> None
 def write_partition(image_path: str, partition: int, partition_file: str) -> None:
     """Write a partition back into an image using dd."""
     offset, _ = get_partition_info(image_path, partition)
-    
+
     # Use 1M block size for performance; byte-accurate via seek_bytes
     subprocess.run(
         [
@@ -110,20 +110,20 @@ def write_partition(image_path: str, partition: int, partition_file: str) -> Non
 def inject_tar_contents(partition_path: str, tar_path: str) -> None:
     """
     Inject tar contents into an ext4 partition using debugfs.
-    
+
     debugfs -w provides an interactive shell for ext4 manipulation.
     We use it to create directories, write files, and set metadata.
     """
     with tempfile.TemporaryDirectory() as temp_dir:
         temp_path = Path(temp_dir)
-        
+
         # Extract all files to temp dir
         with tarfile.open(tar_path, "r:*") as tf:
-            tf.extractall(temp_path, filter='data')
-        
+            tf.extractall(temp_path, filter="data")
+
         # Build debugfs commands
         commands = []
-        
+
         # First pass: create all directories (parent-first order)
         dirs_to_create = set()
         with tarfile.open(tar_path, "r:*") as tf:
@@ -134,44 +134,44 @@ def inject_tar_contents(partition_path: str, tar_path: str) -> None:
                     # Also add all parent directories
                     parts = path.split("/")
                     for i in range(len(parts)):
-                        dirs_to_create.add("/".join(parts[:i+1]))
+                        dirs_to_create.add("/".join(parts[: i + 1]))
                 elif member.isfile() or member.issym():
                     # Ensure parent directory exists
                     parent = str(Path(member.name.lstrip("/")).parent)
                     if parent and parent != ".":
                         parts = parent.split("/")
                         for i in range(len(parts)):
-                            dirs_to_create.add("/".join(parts[:i+1]))
-        
+                            dirs_to_create.add("/".join(parts[: i + 1]))
+
         # Sort by depth to create parents first
         dirs_to_create = sorted(dirs_to_create, key=lambda p: p.count("/"))
-        
+
         # Create directories (parent-first, plain mkdir without -p)
         for d in dirs_to_create:
             if d:  # Skip empty strings
                 commands.append(f"mkdir {d}")
-        
+
         # Write files and symlinks
         with tarfile.open(tar_path, "r:*") as tf:
             for member in tf.getmembers():
                 path = member.name.lstrip("/")
-                
+
                 if member.isfile():
                     local_file = temp_path / member.name.lstrip("/")
                     if local_file.exists():
                         # Remove existing destination if present (handle collisions)
                         commands.append(f"rm {path}")
                         commands.append(f"write {local_file} {path}")
-                
+
                 elif member.issym():
                     # debugfs symlink syntax: symlink <link-name> <target>
                     commands.append(f"rm {path}")
                     commands.append(f"symlink {path} {member.linkname}")
-        
+
         # Write commands to file
         cmd_file = temp_path / "debugfs.cmds"
         cmd_file.write_text("\n".join(commands) + "\n")
-        
+
         # Run debugfs and capture output for error checking
         result = subprocess.run(
             ["debugfs", "-w", "-f", str(cmd_file), partition_path],
@@ -179,7 +179,7 @@ def inject_tar_contents(partition_path: str, tar_path: str) -> None:
             capture_output=True,
             text=True,
         )
-        
+
         # Check for errors in debugfs output
         if result.stderr and "error" in result.stderr.lower():
             raise RuntimeError(
@@ -190,7 +190,7 @@ def inject_tar_contents(partition_path: str, tar_path: str) -> None:
 def check_free_space(partition_path: str, required_bytes: int) -> None:
     """
     Check that the partition has enough free space for the overlay.
-    
+
     Raises ValueError if insufficient space.
     """
     result = subprocess.run(
@@ -199,18 +199,18 @@ def check_free_space(partition_path: str, required_bytes: int) -> None:
         text=True,
         check=True,
     )
-    
+
     free_blocks = 0
     block_size = 4096
-    
+
     for line in result.stdout.split("\n"):
         if line.startswith("Free blocks:"):
             free_blocks = int(line.split(":")[1].strip())
         elif line.startswith("Block size:"):
             block_size = int(line.split(":")[1].strip())
-    
+
     free_bytes = free_blocks * block_size
-    
+
     if free_bytes < required_bytes:
         raise ValueError(
             f"Insufficient free space: {free_bytes} bytes available, "
@@ -233,60 +233,53 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Inject tar overlay into ext4 partition via debugfs"
     )
-    parser.add_argument(
-        "--image", required=True, help="Source image file"
-    )
+    parser.add_argument("--image", required=True, help="Source image file")
     parser.add_argument(
         "--partition", type=int, required=True, help="Partition number to inject into"
     )
+    parser.add_argument("--tar", required=True, help="Tar archive to inject")
+    parser.add_argument("--output", required=True, help="Output image file")
     parser.add_argument(
-        "--tar", required=True, help="Tar archive to inject"
+        "--no-space-check", action="store_true", help="Skip free space verification"
     )
-    parser.add_argument(
-        "--output", required=True, help="Output image file"
-    )
-    parser.add_argument(
-        "--no-space-check", action="store_true",
-        help="Skip free space verification"
-    )
-    
+
     args = parser.parse_args()
-    
+
     # Validate inputs
     if not os.path.exists(args.image):
         print(f"Error: Image file not found: {args.image}", file=sys.stderr)
         return 1
-    
+
     if not os.path.exists(args.tar):
         print(f"Error: Tar file not found: {args.tar}", file=sys.stderr)
         return 1
-    
+
     # Copy source image to output location
     if args.output != args.image:
         subprocess.run(["cp", args.image, args.output], check=True)
-    
+
     # Work on a copy of the partition
     with tempfile.TemporaryDirectory() as temp_dir:
         partition_file = Path(temp_dir) / "partition.img"
-        
+
         # Extract the partition
         print(f"Extracting partition {args.partition}...")
         extract_partition(args.output, args.partition, str(partition_file))
-        
+
         # Check free space
         if not args.no_space_check:
             required = get_tar_size(args.tar)
             print(f"Checking free space (need ~{required} bytes)...")
             check_free_space(str(partition_file), required)
-        
+
         # Inject the tar contents
         print(f"Injecting {args.tar}...")
         inject_tar_contents(str(partition_file), args.tar)
-        
+
         # Write the partition back
         print(f"Writing modified partition...")
         write_partition(args.output, args.partition, str(partition_file))
-    
+
     print(f"Done: {args.output}")
     return 0
 
