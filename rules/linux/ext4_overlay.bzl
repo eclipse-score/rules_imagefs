@@ -82,6 +82,8 @@ ext4_overlay_inject = rule(
         ),
         "srcs": attr.label_list(
             allow_files = True,
+            allow_empty = False,
+            mandatory = True,
             doc = "Files to include in the overlay",
         ),
         "package_dir": attr.string(
