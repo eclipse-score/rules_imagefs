@@ -31,6 +31,11 @@ diskimage_attrs.update({
         default = False,
         doc = "When True, passes -g to diskimage to generate a GPT (GUID Partition Table) disk image.",
     ),
+    "_flatten_tool": attr.label(
+        default = Label("//rules/qnx/tools:flatten_build_files"),
+        cfg = "exec",
+        executable = True,
+    ),
 })
 
 def _diskimage_impl(ctx):
@@ -58,11 +63,14 @@ def _diskimage_impl(ctx):
 
     disk_build_files = [ctx.file.build_file] + ctx.files.extra_build_files
     flat_build_file = ctx.actions.declare_file("{}_flat.build".format(ctx.attr.name))
-    ctx.actions.run_shell(
-        outputs = [flat_build_file],
+    flatten_args = ctx.actions.args()
+    flatten_args.add("--output", flat_build_file)
+    flatten_args.add_all(disk_build_files)
+    ctx.actions.run(
+        executable = ctx.executable._flatten_tool,
+        arguments = [flatten_args],
         inputs = disk_build_files,
-        arguments = [flat_build_file.path] + [f.path for f in disk_build_files],
-        command = "set -euo pipefail; out=\"$1\"; shift; : > \"$out\"; for f in \"$@\"; do cat \"$f\" >> \"$out\"; printf '\\n' >> \"$out\"; done",
+        outputs = [flat_build_file],
         mnemonic = "QnxDiskimageFlattenBuildFile",
     )
 
