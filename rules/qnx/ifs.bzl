@@ -31,6 +31,16 @@ _attrs_ifs_rules.update({
         default = [],
         doc = "List of paths for mkifs -r, each relative to the main build file's directory (or absolute).",
     ),
+    "search_srcs": attr.label_list(
+        allow_files = True,
+        default = [],
+        doc = "Files staged as action inputs (so mkifs -r / [search=...] can " +
+              "resolve bare filenames against them) but NOT added as explicit " +
+              "IFS content entries. Use this for files that a build file " +
+              "references by bare name (e.g. `/sbin/foo=foo`) instead of " +
+              "`srcs`, which also places every file at its pkg_files " +
+              "destination -- unlike plain `srcs`.",
+    ),
 })
 
 def _qnx_ifs_impl(ctx):
@@ -42,6 +52,7 @@ def _qnx_ifs_impl(ctx):
 
     out_image = prep_output(ctx, "ifs")
     main_build_file_string_path, inputs = prep_inputs(ctx)
+    inputs = inputs + ctx.files.search_srcs
 
     args = ctx.actions.args()
     args.add_all(
