@@ -44,6 +44,7 @@ ext4(
         ":hello_link",
         ":rootfs_files",
     ],
+    target_compatible_with = ["@platforms//os:linux"],
 )
 
 sh_test(
@@ -51,4 +52,5 @@ sh_test(
     srcs = ["ext4_test.sh"],
     args = ["$(location :test_image)"],
     data = [":test_image"],
+    target_compatible_with = ["@platforms//os:linux"],
 )

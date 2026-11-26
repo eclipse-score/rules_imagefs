@@ -1,0 +1,47 @@
+# *******************************************************************************
+# Copyright (c) 2026 Contributors to the Eclipse Foundation
+#
+# See the NOTICE file(s) distributed with this work for additional
+# information regarding copyright ownership.
+#
+# This program and the accompanying materials are made available under the
+# terms of the Apache License Version 2.0 which is available at
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# SPDX-License-Identifier: Apache-2.0
+# *******************************************************************************
+
+# Minimal x86_64 boot image: starts the kernel, brings up the serial console
+# and runs /proc/boot/hello, which the qnx_ifs rule adds from its `srcs`.
+
+[image=0x1000000]
+[virtual=x86_64,multiboot] boot = {
+    startup-x86 -D8250..115200 -zz
+    PATH=/proc/boot
+    LD_LIBRARY_PATH=/proc/boot
+    [+keeplinked] procnto-smp-instr
+}
+
+[+script] startup-script = {
+    procmgr_symlink /dev/shmem /tmp
+    SYSNAME=nto
+    TERM=qansi
+
+    devc-ser8250 &
+    waitfor /dev/ser1
+    reopen /dev/ser1
+
+    hello
+}
+
+# Runtime libraries needed by the dynamically linked hello binary and by the
+# serial console driver
+libc.so.6
+libgcc_s.so.1
+libm.so.3
+libc++.so.2
+libsecpol.so.1
+/usr/lib/ldqnx-64.so.2=ldqnx-64.so.2
+
+# Serial console driver started by the startup script
+devc-ser8250
